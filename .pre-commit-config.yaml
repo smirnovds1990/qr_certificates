@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        args: [
+          "--profile",
+          "black",
+          "--line-length=79",
+          "--lines-after-imports",
+          "2",
+          "--skip",
+          "__init__.py",
+        ]
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 25.1.0
+    hooks:
+      - id: black
+        args: [--line-length=79]
+        language_version: python3.12
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        args: ["--ignore=E501,W503", "src/certificates/settings.py"]
