@@ -12,9 +12,6 @@ services:
     build:
       context: .
       dockerfile: src/Dockerfile
-    environment:
-      - HOST=${HOST}
-      - PORT=${PORT}
     env_file:
       - .env
     restart: always
