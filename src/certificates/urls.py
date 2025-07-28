@@ -8,6 +8,7 @@ urlpatterns = [
     path("api/", include("api.urls")),
 ]
 
+# Подключаем документацию для разработки (если DEBUG = True)
 if settings.DEBUG:
     from drf_spectacular.views import (
         SpectacularAPIView,
