@@ -44,7 +44,6 @@ class Certificate(models.Model):
 class CertificateOrder(models.Model):
     id = models.UUIDField(
         primary_key=True,
-        db_default=uuid4(),
         default=uuid4,
         editable=False,
     )
