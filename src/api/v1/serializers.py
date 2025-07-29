@@ -7,4 +7,4 @@ class CertificateListSerializer(ModelSerializer):
 
     class Meta:
         model = Certificate
-        fields = ("value",)
+        fields = ("id", "value")
