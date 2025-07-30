@@ -104,3 +104,29 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Сервис покупки QR-код сертификатов.",
     "VERSION": "1.0.0",
 }
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "main": {"format": env("LOG_FORMAT")},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "main",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "main",
+            "filename": BASE_DIR / "logs" / "certificates.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 5,
+            "encoding": "utf-8",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": env("LOG_LEVEL"),
+    },
+}
