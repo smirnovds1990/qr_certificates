@@ -10,6 +10,7 @@ dependencies = [
     "djangorestframework>=3.16.0",
     "psycopg2>=2.9.10",
     "python-dotenv>=1.1.1",
+    "yookassa>=3.6.0",
 ]
 
 [dependency-groups]
