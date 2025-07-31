@@ -1,6 +1,9 @@
 from uuid import UUID
 
-from orders.exceptions import CertificateNotFoundError
+from orders.exceptions import (
+    CertificateNotFoundError,
+    CertificateOrderNotFoundError,
+)
 from orders.models import Certificate, CertificateOrder
 
 
@@ -17,3 +20,12 @@ def create_certificate_order(
     return CertificateOrder.objects.create(
         certificate=certificate, email=email
     )
+
+
+def refresh_certificate_order_status(order_id: UUID, new_status: str) -> None:
+    try:
+        order = CertificateOrder.objects.get(id=order_id)
+        order.status = new_status
+        order.save()
+    except CertificateOrder.DoesNotExist:
+        raise CertificateOrderNotFoundError(f"Order with id: {id} not found.")
