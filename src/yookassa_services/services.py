@@ -1,5 +1,5 @@
 import os
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from yookassa import Configuration, Payment
 from yookassa.domain.response import PaymentResponse
@@ -14,7 +14,9 @@ Configuration.account_id = os.getenv("YOOKASSA_ACCOUNT_ID")
 Configuration.secret_key = os.getenv("YOOKASSA_SECRET_KEY")
 
 
-def create_payment(value: int, description: str) -> PaymentResponse:
+def create_payment(
+    value: int, description: str, order_id: UUID
+) -> PaymentResponse:
     return Payment.create(
         {
             "amount": {"value": f"{value:.2f}", "currency": CURRENCY_RUB},
@@ -24,6 +26,7 @@ def create_payment(value: int, description: str) -> PaymentResponse:
             },
             "capture": True,
             "description": description,
+            "metadata": {"order_id": str(order_id)},
         },
         idempotency_key=uuid4(),
     )
