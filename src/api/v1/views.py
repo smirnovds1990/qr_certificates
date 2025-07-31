@@ -1,16 +1,32 @@
+import logging
+import os
+
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.exceptions import NotFound
+from rest_framework import status
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.utils import get_client_ip
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
+    YookassaNotificationSerializer,
 )
-from orders.exceptions import CertificateNotFoundError
+from orders.exceptions import (
+    CertificateNotFoundError,
+    CertificateOrderNotFoundError,
+    UnexpectedYokassaNotificationStatus,
+)
 from orders.models import Certificate
-from orders.services import process_certificate_order
+from orders.services import (
+    process_certificate_order,
+    process_yookassa_notification,
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 class CertificateListView(ListAPIView):
@@ -64,3 +80,25 @@ class YookassaReturnUrlView(APIView):
                 )
             }
         )
+
+
+class PaymentStatusView(APIView):
+    """
+    Обрабатывает уведовмления о смене статуса платежа, полученные от ЮКассы.
+    """
+
+    def post(self, request) -> Response:
+        ip = get_client_ip(request)
+        if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
+            serializer = YookassaNotificationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            try:
+                process_yookassa_notification(serializer.validated_data)
+                return Response(status=status.HTTP_200_OK)
+            except UnexpectedYokassaNotificationStatus:
+                raise ParseError("Unexpected Yookassa notification status.")
+            except CertificateOrderNotFoundError:
+                raise NotFound("Заказ не найден!")
+        else:
+            logger.warning("Got the wrong IP: %s. It's not from Yookassa.", ip)
+            raise ParseError("Wrong client IP. Bad Request.")

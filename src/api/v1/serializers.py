@@ -15,3 +15,18 @@ class CertificateOrderCreateSerializer(serializers.Serializer):
 
     id = serializers.UUIDField()
     email = serializers.EmailField()
+
+
+class YookassaNotificationObjectSerializer(serializers.Serializer):
+    """Для вложенного в уведомление object."""
+
+    status = serializers.CharField()
+    metadata = serializers.DictField()
+
+
+class YookassaNotificationSerializer(serializers.Serializer):
+    """Для объекта уведомления о смене статуса платежа от ЮКассы."""
+
+    type = serializers.CharField()
+    event = serializers.CharField()
+    object = YookassaNotificationObjectSerializer()
