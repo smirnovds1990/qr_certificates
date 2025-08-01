@@ -3,6 +3,7 @@ from django.urls import path
 from api.v1.views import (
     CertificateListView,
     CertificateOrderProcessingView,
+    CertificateOrderUseView,
     PaymentStatusView,
     YookassaReturnUrlView,
 )
@@ -20,5 +21,10 @@ urlpatterns = [
         "changed-payment-status/",
         PaymentStatusView.as_view(),
         name="payment_status",
+    ),
+    path(
+        "certificate-order/<uuid:id>/",
+        CertificateOrderUseView.as_view(),
+        name="use_certificate",
     ),
 ]

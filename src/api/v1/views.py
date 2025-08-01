@@ -12,6 +12,7 @@ from api.utils import get_client_ip
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
+    CertificateOrderInfoSerializer,
     YookassaNotificationSerializer,
 )
 from orders.exceptions import (
@@ -21,6 +22,7 @@ from orders.exceptions import (
 )
 from orders.models import Certificate
 from orders.services import (
+    get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
 )
@@ -38,11 +40,14 @@ class CertificateListView(ListAPIView):
 
 @extend_schema(
     request=CertificateOrderCreateSerializer,
-    responses={200: OpenApiResponse(description="URL для оплаты")},
+    responses={
+        200: OpenApiResponse(description="URL для оплаты"),
+        404: OpenApiResponse(description="Сертификат не найден"),
+    },
 )
 class CertificateOrderProcessingView(APIView):
     """
-    Обработка заказа сертификата.
+    Предварительное создание заказа сертификата (со статусом "В процессе").
     Входные данные:
         data = {
             "id": id сертификата,
@@ -82,9 +87,10 @@ class YookassaReturnUrlView(APIView):
         )
 
 
+@extend_schema(exclude=True)
 class PaymentStatusView(APIView):
     """
-    Обрабатывает уведовмления о смене статуса платежа, полученные от ЮКассы.
+    Обрабатывает уведомления о смене статуса платежа, полученные от ЮКассы.
 
     API ЮКассы требует в ответ на уведомления только код 200.
     Документация говорит:
@@ -112,3 +118,28 @@ class PaymentStatusView(APIView):
         else:
             logger.warning("Got the wrong IP: %s. It's not from Yookassa.", ip)
             raise ParseError("Wrong client IP. Bad Request.")
+
+
+@extend_schema(
+    responses={
+        200: CertificateOrderInfoSerializer,
+        404: OpenApiResponse(description="Заказ не найден"),
+    },
+)
+class CertificateOrderUseView(APIView):
+    """
+    Использование сертификата.
+    При GET-запросе — выдает данные заказа, ожидает списание.
+    При POST-запросе — списывает заказ (CertificateOrder.is_used = True).
+    """
+
+    def get(self, request, *args, **kwargs) -> Response:
+        try:
+            order_info = get_certificate_order_info(self.kwargs.get("id"))
+            serializer = CertificateOrderInfoSerializer(order_info)
+            return Response(serializer.data)
+        except CertificateOrderNotFoundError:
+            raise NotFound("Заказ не найден!")
+
+    # def post(self, request, id: UUID) -> Response:
+    #     pass

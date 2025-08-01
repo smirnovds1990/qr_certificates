@@ -30,3 +30,11 @@ class YookassaNotificationSerializer(serializers.Serializer):
     type = serializers.CharField()
     event = serializers.CharField()
     object = YookassaNotificationObjectSerializer()
+
+
+class CertificateOrderInfoSerializer(serializers.Serializer):
+    """Для возврата информации о заказе при сканировании QR-сертификата."""
+
+    email = serializers.EmailField()
+    certificate_value = serializers.IntegerField()
+    message = serializers.CharField(required=False)

@@ -11,6 +11,7 @@ from orders.models import OrderStatus
 from orders.repositories import (
     create_certificate_order,
     get_certificate_by_id,
+    get_order_by_id,
     refresh_certificate_order_status,
 )
 from yookassa_services.services import create_payment
@@ -84,4 +85,19 @@ def process_yookassa_notification(data: dict[str, Any]) -> None:
         )
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", data["id"], error)
+        raise
+
+
+def get_certificate_order_info(id: UUID) -> dict[str, dict[str, str | int]]:
+    try:
+        order = get_order_by_id(id)
+        order_info = {
+            "email": order.email,
+            "certificate_value": order.certificate.value,
+        }
+        if order.is_used:
+            order_info["message"] = "Этот сертификат уже использован."
+        return order_info
+    except CertificateOrderNotFoundError as error:
+        logger.warning("Order not found! id: %s, error: %s", id, error)
         raise

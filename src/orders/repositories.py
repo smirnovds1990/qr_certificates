@@ -29,3 +29,10 @@ def refresh_certificate_order_status(order_id: UUID, new_status: str) -> None:
         order.save()
     except CertificateOrder.DoesNotExist:
         raise CertificateOrderNotFoundError(f"Order with id: {id} not found.")
+
+
+def get_order_by_id(id: UUID) -> CertificateOrder:
+    try:
+        return CertificateOrder.objects.get(id=id)
+    except CertificateOrder.DoesNotExist:
+        raise CertificateOrderNotFoundError(f"Order with id: {id} not found.")
