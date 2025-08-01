@@ -7,11 +7,12 @@ from orders.exceptions import (
     CertificateOrderNotFoundError,
     UnexpectedYokassaNotificationStatus,
 )
-from orders.models import OrderStatus
+from orders.models import CertificateOrder, OrderStatus
 from orders.repositories import (
     create_certificate_order,
     get_certificate_by_id,
     get_order_by_id,
+    make_certificate_order_used,
     refresh_certificate_order_status,
 )
 from yookassa_services.services import create_payment
@@ -41,6 +42,21 @@ def _get_yookassa_notification_status(data: dict[str, Any]) -> str:
             f"Unknown status {data["object"]["status"]} "
             f"for event {data["event"]}"
         )
+
+
+def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
+    order_info = {
+        "email": order.email,
+        "certificate_value": order.certificate.value,
+        "is_used": order.is_used,
+        "status": order.status,
+        "messages": {},
+    }
+    if order.is_used:
+        order_info["messages"]["is_used"] = "Этот сертификат уже использован."
+    if not order.status == OrderStatus.PAID:
+        order_info["messages"]["status"] = "Сертификат не олачен."
+    return order_info
 
 
 def process_certificate_order(data: dict[str, UUID | str]) -> str:
@@ -88,15 +104,24 @@ def process_yookassa_notification(data: dict[str, Any]) -> None:
         raise
 
 
-def get_certificate_order_info(id: UUID) -> dict[str, dict[str, str | int]]:
+def get_certificate_order_info(id: UUID) -> dict[str, Any]:
     try:
         order = get_order_by_id(id)
-        order_info = {
-            "email": order.email,
-            "certificate_value": order.certificate.value,
-        }
-        if order.is_used:
-            order_info["message"] = "Этот сертификат уже использован."
+        return _form_order_info(order)
+    except CertificateOrderNotFoundError as error:
+        logger.warning("Order not found! id: %s, error: %s", id, error)
+        raise
+
+
+def use_certificate(id: UUID) -> dict[str, Any]:
+    try:
+        order = get_order_by_id(id)
+        order_info = _form_order_info(order)
+        if not order.status == OrderStatus.PAID or order.is_used:
+            return order_info
+        changed_order = make_certificate_order_used(order)
+        order_info["is_used"] = changed_order.is_used
+        order_info["messages"]["is_used"] = "Сертификат списан успешно."
         return order_info
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", id, error)

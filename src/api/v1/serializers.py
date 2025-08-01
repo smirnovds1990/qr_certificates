@@ -37,4 +37,6 @@ class CertificateOrderInfoSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     certificate_value = serializers.IntegerField()
-    message = serializers.CharField(required=False)
+    is_used = serializers.BooleanField()
+    status = serializers.CharField()
+    messages = serializers.DictField()

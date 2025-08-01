@@ -1,7 +1,11 @@
 import logging
 import os
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import (
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.generics import ListAPIView
@@ -25,6 +29,7 @@ from orders.services import (
     get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
+    use_certificate,
 )
 
 
@@ -120,11 +125,19 @@ class PaymentStatusView(APIView):
             raise ParseError("Wrong client IP. Bad Request.")
 
 
-@extend_schema(
-    responses={
-        200: CertificateOrderInfoSerializer,
-        404: OpenApiResponse(description="Заказ не найден"),
-    },
+@extend_schema_view(
+    get=extend_schema(
+        responses={
+            200: CertificateOrderInfoSerializer,
+            404: OpenApiResponse(description="Заказ не найден"),
+        },
+    ),
+    post=extend_schema(
+        responses={
+            200: CertificateOrderInfoSerializer,
+            404: OpenApiResponse(description="Заказ не найден"),
+        },
+    ),
 )
 class CertificateOrderUseView(APIView):
     """
@@ -141,5 +154,10 @@ class CertificateOrderUseView(APIView):
         except CertificateOrderNotFoundError:
             raise NotFound("Заказ не найден!")
 
-    # def post(self, request, id: UUID) -> Response:
-    #     pass
+    def post(self, request, *args, **kwargs) -> Response:
+        try:
+            order_info = use_certificate(self.kwargs.get("id"))
+            serializer = CertificateOrderInfoSerializer(order_info)
+            return Response(serializer.data)
+        except CertificateOrderNotFoundError:
+            raise NotFound("Заказ не найден!")
