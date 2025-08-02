@@ -10,6 +10,7 @@ from uuid import UUID
 import qrcode
 from django.conf import settings
 from django.core.mail import EmailMessage
+from qrcode.image.base import BaseImage
 
 from orders.exceptions import (
     CertificateNotFoundError,
@@ -70,6 +71,11 @@ def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
     return order_info
 
 
+def _create_qr_code_with_order_url(order_id: UUID) -> BaseImage:
+    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/")
+    return qrcode.make(certificate_url)
+
+
 def process_certificate_order(data: dict[str, UUID | str]) -> str:
     """
     Находит выбранный пользователем сертификат.
@@ -98,8 +104,7 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
 
 def send_certificate_to_client(order_id: UUID) -> None:
     order = get_order_by_id(order_id)
-    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/")
-    image = qrcode.make(certificate_url)
+    image = _create_qr_code_with_order_url(order_id)
     email = EmailMessage(
         subject="Ваш QR-сертификат",
         body=(
@@ -132,8 +137,7 @@ def resend_certificates(data: dict[str, str]) -> str:
         to=[data["email"]],
     )
     for order in relevant_orders:
-        certificate_url = urljoin(settings.BASE_URL, f"{order.id}/")
-        image = qrcode.make(certificate_url)
+        image = _create_qr_code_with_order_url(order.id)
         with BytesIO() as buffer:
             image.save(buffer, format="png")
             buffer.seek(0)

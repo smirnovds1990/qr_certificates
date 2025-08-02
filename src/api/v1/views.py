@@ -78,11 +78,7 @@ class CertificateOrderProcessingView(APIView):
             raise NotFound("Сертификат не найден.")
 
 
-@extend_schema(
-    responses={
-        200: OpenApiResponse(description="Сообщение пользователю после оплаты")
-    }
-)
+@extend_schema(exclude=True)
 class YookassaReturnUrlView(APIView):
     """Представление для редиректа с API ЮКассы после оплаты."""
 
