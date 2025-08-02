@@ -19,10 +19,10 @@ services:
       - "8000:8000"
     depends_on:
       - backend_db
-  # mailhog:
-  #   image: mailhog/mailhog
-  #   ports:
-  #     - "1025:1025"  # SMTP
-  #     - "8025:8025"  # Web UI
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
 volumes:
   pg_data:
