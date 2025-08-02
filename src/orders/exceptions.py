@@ -8,3 +8,7 @@ class CertificateOrderNotFoundError(Exception):
 
 class UnexpectedYokassaNotificationStatus(Exception):
     pass
+
+
+class SendEmailError(Exception):
+    pass
