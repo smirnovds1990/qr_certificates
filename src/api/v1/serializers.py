@@ -40,3 +40,9 @@ class CertificateOrderInfoSerializer(serializers.Serializer):
     is_used = serializers.BooleanField()
     status = serializers.CharField()
     messages = serializers.DictField()
+
+
+class ResendCertificateOrderSerializer(serializers.Serializer):
+    """Для повторной отправки сертификата."""
+
+    email = serializers.EmailField()

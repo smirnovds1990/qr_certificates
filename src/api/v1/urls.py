@@ -5,6 +5,7 @@ from api.v1.views import (
     CertificateOrderProcessingView,
     CertificateOrderUseView,
     PaymentStatusView,
+    ResendOrderView,
     YookassaReturnUrlView,
 )
 
@@ -26,5 +27,10 @@ urlpatterns = [
         "certificate-order/<uuid:id>/",
         CertificateOrderUseView.as_view(),
         name="use_certificate",
+    ),
+    path(
+        "certificate-order/resend/",
+        ResendOrderView.as_view(),
+        name="resend_certificate_order",
     ),
 ]

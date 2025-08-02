@@ -1,5 +1,7 @@
 import logging
-import os
+import smtplib
+import socket
+import ssl
 from io import BytesIO
 from typing import Any
 from urllib.parse import urljoin
@@ -12,6 +14,7 @@ from django.core.mail import EmailMessage
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
+    SendEmailError,
     UnexpectedYokassaNotificationStatus,
 )
 from orders.models import CertificateOrder, OrderStatus
@@ -19,6 +22,7 @@ from orders.repositories import (
     create_certificate_order,
     get_certificate_by_id,
     get_order_by_id,
+    get_orders_by_email,
     make_certificate_order_used,
     refresh_certificate_order_status,
 )
@@ -93,25 +97,55 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
 
 
 def send_certificate_to_client(order_id: UUID) -> None:
-    BASE_URL = os.getenv("BASE_URL")
     order = get_order_by_id(order_id)
-    certificate_url = urljoin(BASE_URL, f"{order_id}/")
+    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/")
     image = qrcode.make(certificate_url)
-    with BytesIO() as buffer:
-        image.save(buffer, bitmap_format="png")
-        buffer.seek(0)
-        email = EmailMessage(
-            subject="Ваш QR-сертификат",
-            body=(
-                "Приобретённый вами сертификат "
-                f"на сумму {order.certificate.value} во вложении. "
-                "Спасибо!"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[order.email],
-        )
-        email.attach("qr_certificate.png", buffer.read(), "image/png")
-        email.send()
+    email = EmailMessage(
+        subject="Ваш QR-сертификат",
+        body=(
+            "Приобретённый вами сертификат "
+            f"на сумму {order.certificate.value} во вложении. "
+            "Спасибо!"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[order.email],
+    )
+    try:
+        with BytesIO() as buffer:
+            image.save(buffer, format="png")
+            buffer.seek(0)
+            email.attach("qr_certificate.png", buffer.read(), "image/png")
+            email.send()
+    except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
+        logger.warning("Ошибка при отправке письма клиенту. %s", error)
+        raise SendEmailError("Ошибка при отправке письма клиенту.")
+
+
+def resend_certificates(data: dict[str, str]) -> str:
+    relevant_orders = get_orders_by_email(data["email"])
+    if not relevant_orders.exists():
+        return "Для данного клиента нет актуальных заказов."
+    email_to_client = EmailMessage(
+        subject="Ваш QR-сертификат",
+        body=("Приобретённые вами сертификаты во вложении."),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[data["email"]],
+    )
+    for order in relevant_orders:
+        certificate_url = urljoin(settings.BASE_URL, f"{order.id}/")
+        image = qrcode.make(certificate_url)
+        with BytesIO() as buffer:
+            image.save(buffer, format="png")
+            buffer.seek(0)
+            email_to_client.attach(
+                f"{order.id}.png", buffer.read(), "image/png"
+            )
+    try:
+        email_to_client.send()
+        return "Ваши актуальные сертификаты отправлены по указанному адресу."
+    except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
+        logger.warning("Ошибка при отправке письма клиенту. %s", error)
+        raise SendEmailError("Ошибка при отправке письма клиенту.")
 
 
 def process_yookassa_notification(data: dict[str, Any]) -> None:

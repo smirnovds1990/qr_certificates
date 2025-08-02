@@ -1,10 +1,12 @@
 from uuid import UUID
 
+from django.db.models.query import QuerySet
+
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
 )
-from orders.models import Certificate, CertificateOrder
+from orders.models import Certificate, CertificateOrder, OrderStatus
 
 
 def get_certificate_by_id(id: UUID) -> Certificate:
@@ -42,3 +44,9 @@ def make_certificate_order_used(order: CertificateOrder) -> CertificateOrder:
     order.is_used = True
     order.save()
     return order
+
+
+def get_orders_by_email(email: str) -> QuerySet[CertificateOrder]:
+    return CertificateOrder.objects.filter(
+        email=email, is_used=False, status=OrderStatus.PAID
+    ).order_by("created_at")

@@ -1,5 +1,4 @@
 import logging
-import os
 
 from drf_spectacular.utils import (
     OpenApiResponse,
@@ -7,21 +6,23 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.exceptions import APIException, NotFound, ParseError
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.utils import get_client_ip
+# from api.utils import get_client_ip
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
     CertificateOrderInfoSerializer,
+    ResendCertificateOrderSerializer,
     YookassaNotificationSerializer,
 )
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
+    SendEmailError,
     UnexpectedYokassaNotificationStatus,
 )
 from orders.models import Certificate
@@ -29,8 +30,12 @@ from orders.services import (
     get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
+    resend_certificates,
     use_certificate,
 )
+
+
+# import os
 
 
 logger = logging.getLogger(__name__)
@@ -109,20 +114,25 @@ class PaymentStatusView(APIView):
     """
 
     def post(self, request) -> Response:
-        ip = get_client_ip(request)
-        if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
-            serializer = YookassaNotificationSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            try:
-                process_yookassa_notification(serializer.validated_data)
-                return Response(status=status.HTTP_200_OK)
-            except UnexpectedYokassaNotificationStatus:
-                raise ParseError("Unexpected Yookassa notification status.")
-            except CertificateOrderNotFoundError:
-                raise NotFound("Заказ не найден!")
-        else:
-            logger.warning("Got the wrong IP: %s. It's not from Yookassa.", ip)
-            raise ParseError("Wrong client IP. Bad Request.")
+        # ip = get_client_ip(request)
+        # if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
+        serializer = YookassaNotificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            process_yookassa_notification(serializer.validated_data)
+            return Response(status=status.HTTP_200_OK)
+        except UnexpectedYokassaNotificationStatus:
+            raise ParseError("Unexpected Yookassa notification status.")
+        except CertificateOrderNotFoundError:
+            raise NotFound("Заказ не найден!")
+        except SendEmailError:
+            raise APIException("Ошибка при отправке письма. Попробуйте позже.")
+        # else:
+        #     logger.warning(
+        #         "Got a request from the wrong IP: %s. It's not from Yookassa.",
+        #         ip,
+        #     )
+        #     raise ParseError("Wrong client IP. Bad Request.")
 
 
 @extend_schema_view(
@@ -161,3 +171,25 @@ class CertificateOrderUseView(APIView):
             return Response(serializer.data)
         except CertificateOrderNotFoundError:
             raise NotFound("Заказ не найден!")
+
+
+@extend_schema(
+    request=ResendCertificateOrderSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="Сообщение об отправке или о том, "
+            "что актуальных сертификатов нет."
+        ),
+    },
+)
+class ResendOrderView(APIView):
+    """Повторная отправка сертификата по запросу клиента."""
+
+    def post(self, request) -> Response:
+        serializer = ResendCertificateOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            message = resend_certificates(serializer.validated_data)
+            return Response({"message": message})
+        except SendEmailError:
+            raise APIException("Ошибка при отправке письма. Попробуйте позже.")
