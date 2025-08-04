@@ -1,12 +1,18 @@
 import logging
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
+    OpenApiExample,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.exceptions import APIException, NotFound, ParseError
+from rest_framework.exceptions import (  # AuthenticationFailed,
+    APIException,
+    NotFound,
+    ParseError,
+)
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,7 +22,9 @@ from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
     CertificateOrderInfoSerializer,
+    MessageResponseSerializer,
     ResendCertificateOrderSerializer,
+    UrlResponseSerializer,
     YookassaNotificationSerializer,
 )
 from orders.exceptions import (
@@ -51,7 +59,7 @@ class CertificateListView(ListAPIView):
 @extend_schema(
     request=CertificateOrderCreateSerializer,
     responses={
-        200: OpenApiResponse(description="URL для оплаты"),
+        200: UrlResponseSerializer,
         404: OpenApiResponse(description="Сертификат не найден"),
     },
 )
@@ -78,7 +86,7 @@ class CertificateOrderProcessingView(APIView):
             raise NotFound("Сертификат не найден.")
 
 
-@extend_schema(exclude=True)
+@extend_schema(responses={200: MessageResponseSerializer})
 class YookassaReturnUrlView(APIView):
     """Представление для редиректа с API ЮКассы после оплаты."""
 
@@ -93,7 +101,25 @@ class YookassaReturnUrlView(APIView):
         )
 
 
-@extend_schema(exclude=True)
+@extend_schema(
+    responses={
+        200: OpenApiResponse(
+            response=OpenApiTypes.INT,
+            description="Просто 200 код, как требует API ЮКассы.",
+            examples=[OpenApiExample(name="Успешный запрос.", value=200)],
+        ),
+        400: OpenApiResponse(
+            description="Неизвестный статус уведомления от ЮКассы."
+        ),
+        401: OpenApiResponse(
+            description="Неизвестный IP клиента. Это не уведомление от ЮКассы."
+        ),
+        404: OpenApiResponse(description="Заказ не найден!"),
+        500: OpenApiResponse(
+            description="Ошибка при отправке письма. Попробуйте позже."
+        ),
+    }
+)
 class PaymentStatusView(APIView):
     """
     Обрабатывает уведомления о смене статуса платежа, полученные от ЮКассы.
@@ -128,7 +154,7 @@ class PaymentStatusView(APIView):
         #         "Got a request from the wrong IP: %s. It's not from Yookassa.",
         #         ip,
         #     )
-        #     raise ParseError("Wrong client IP. Bad Request.")
+        #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
 
 
 @extend_schema_view(
@@ -172,10 +198,8 @@ class CertificateOrderUseView(APIView):
 @extend_schema(
     request=ResendCertificateOrderSerializer,
     responses={
-        200: OpenApiResponse(
-            description="Сообщение об отправке или о том, "
-            "что актуальных сертификатов нет."
-        ),
+        200: MessageResponseSerializer,
+        500: OpenApiResponse(description="Ошибка при отправке письма."),
     },
 )
 class ResendOrderView(APIView):

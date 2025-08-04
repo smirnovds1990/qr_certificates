@@ -32,6 +32,13 @@ class YookassaNotificationSerializer(serializers.Serializer):
     object = YookassaNotificationObjectSerializer()
 
 
+class NestedMessagesSerializer(serializers.Serializer):
+    """Для вложенных сообщений при списании заказа."""
+
+    is_used = serializers.CharField(required=False)
+    status = serializers.CharField(required=False)
+
+
 class CertificateOrderInfoSerializer(serializers.Serializer):
     """Для возврата информации о заказе при сканировании QR-сертификата."""
 
@@ -39,10 +46,22 @@ class CertificateOrderInfoSerializer(serializers.Serializer):
     certificate_value = serializers.IntegerField()
     is_used = serializers.BooleanField()
     status = serializers.CharField()
-    messages = serializers.DictField()
+    messages = NestedMessagesSerializer()
 
 
 class ResendCertificateOrderSerializer(serializers.Serializer):
     """Для повторной отправки сертификата."""
 
     email = serializers.EmailField()
+
+
+class MessageResponseSerializer(serializers.Serializer):
+    """Для сообщений в ответах API."""
+
+    message = serializers.CharField()
+
+
+class UrlResponseSerializer(serializers.Serializer):
+    """Для возврата URL от ЮКассы."""
+
+    confirmation_url = serializers.URLField()
