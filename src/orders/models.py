@@ -41,6 +41,26 @@ class Certificate(models.Model):
         return f"{self.value} ₽"
 
 
+class Customer(models.Model):
+    first_name = models.CharField(
+        verbose_name="Имя", max_length=150, blank=False, null=False
+    )
+    last_name = models.CharField(
+        verbose_name="Фамилия", max_length=150, blank=False, null=False
+    )
+    phone = models.CharField(
+        verbose_name="Номер телефона", max_length=15, blank=False, null=False
+    )
+
+    class Meta:
+        verbose_name = "Покупатель"
+        verbose_name_plural = "Покупатели"
+        ordering = ["last_name"]
+
+    def __str__(self) -> str:
+        return f"{self.first_name} {self.last_name} ({self.phone})"
+
+
 class CertificateOrder(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -52,13 +72,20 @@ class CertificateOrder(models.Model):
         on_delete=models.PROTECT,
         verbose_name="Сертификат",
         related_name="orders",
-        help_text="Выберите нужный номинал сертификата",
+        help_text="Выберите сертификат",
     )
     email = models.EmailField(
         verbose_name="Email для отправки",
         blank=False,
         null=False,
         help_text="Введите email, на который будет отправлен сертификат",
+    )
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.PROTECT,
+        verbose_name="Покупатель",
+        related_name="orders",
+        help_text="Выберите покупателя",
     )
     is_used = models.BooleanField(
         verbose_name="Использован",
