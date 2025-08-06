@@ -6,7 +6,7 @@ from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
 )
-from orders.models import Certificate, CertificateOrder, OrderStatus
+from orders.models import Certificate, CertificateOrder, Customer, OrderStatus
 
 
 def get_certificate_by_id(id: UUID) -> Certificate:
@@ -16,11 +16,20 @@ def get_certificate_by_id(id: UUID) -> Certificate:
         raise CertificateNotFoundError(f"Certificate with id: {id} not found.")
 
 
+def create_or_get_customer(
+    first_name: str, last_name: str, phone: str
+) -> Customer:
+    customer, created = Customer.objects.get_or_create(
+        first_name=first_name, last_name=last_name, phone=phone
+    )
+    return customer
+
+
 def create_certificate_order(
-    certificate: Certificate, email: str
+    certificate: Certificate, email: str, customer: Customer
 ) -> CertificateOrder:
     return CertificateOrder.objects.create(
-        certificate=certificate, email=email
+        certificate=certificate, email=email, customer=customer
     )
 
 

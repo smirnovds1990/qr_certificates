@@ -15,6 +15,9 @@ class CertificateOrderCreateSerializer(serializers.Serializer):
 
     id = serializers.UUIDField()
     email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    phone = serializers.CharField(max_length=15)
 
 
 class YookassaNotificationObjectSerializer(serializers.Serializer):

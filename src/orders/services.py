@@ -21,6 +21,7 @@ from orders.exceptions import (
 from orders.models import CertificateOrder, OrderStatus
 from orders.repositories import (
     create_certificate_order,
+    create_or_get_customer,
     get_certificate_by_id,
     get_order_by_id,
     get_orders_by_email,
@@ -84,8 +85,13 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
     """
     try:
         certificate = get_certificate_by_id(id=data["id"])
+        customer = create_or_get_customer(
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            phone=data["phone"],
+        )
         new_order = create_certificate_order(
-            certificate=certificate, email=data["email"]
+            certificate=certificate, email=data["email"], customer=customer
         )
         logger.info("New order created: %s", str(new_order))
         payment = create_payment(
