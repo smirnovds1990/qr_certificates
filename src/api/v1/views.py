@@ -1,4 +1,5 @@
 import logging
+import os
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -8,16 +9,12 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.exceptions import (  # AuthenticationFailed,
-    APIException,
-    NotFound,
-    ParseError,
-)
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-# from api.utils import get_client_ip
+from api.utils import get_client_ip
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
@@ -27,12 +24,6 @@ from api.v1.serializers import (
     UrlResponseSerializer,
     YookassaNotificationSerializer,
 )
-from orders.exceptions import (
-    CertificateNotFoundError,
-    CertificateOrderNotFoundError,
-    SendEmailError,
-    UnexpectedYokassaNotificationStatus,
-)
 from orders.models import Certificate
 from orders.services import (
     get_certificate_order_info,
@@ -41,9 +32,6 @@ from orders.services import (
     resend_certificates,
     use_certificate,
 )
-
-
-# import os
 
 
 logger = logging.getLogger(__name__)
@@ -61,6 +49,7 @@ class CertificateListView(ListAPIView):
     responses={
         200: UrlResponseSerializer,
         404: OpenApiResponse(description="Сертификат не найден"),
+        500: OpenApiResponse(description="Ошибка при создании заказа"),
     },
 )
 class CertificateOrderProcessingView(APIView):
@@ -77,13 +66,8 @@ class CertificateOrderProcessingView(APIView):
     def post(self, request) -> Response:
         serializer = CertificateOrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            confirmation_url = process_certificate_order(
-                serializer.validated_data
-            )
-            return Response({"confirmation_url": confirmation_url})
-        except CertificateNotFoundError:
-            raise NotFound("Сертификат не найден.")
+        confirmation_url = process_certificate_order(serializer.validated_data)
+        return Response({"confirmation_url": confirmation_url})
 
 
 @extend_schema(responses={200: MessageResponseSerializer})
@@ -136,25 +120,18 @@ class PaymentStatusView(APIView):
     """
 
     def post(self, request) -> Response:
-        # ip = get_client_ip(request)
-        # if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
-        serializer = YookassaNotificationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
+        ip = get_client_ip(request)
+        if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
+            serializer = YookassaNotificationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             process_yookassa_notification(serializer.validated_data)
             return Response(status=status.HTTP_200_OK)
-        except UnexpectedYokassaNotificationStatus:
-            raise ParseError("Unexpected Yookassa notification status.")
-        except CertificateOrderNotFoundError:
-            raise NotFound("Заказ не найден!")
-        except SendEmailError:
-            raise APIException("Ошибка при отправке письма. Попробуйте позже.")
-        # else:
-        #     logger.warning(
-        #         "Got a request from the wrong IP: %s. It's not from Yookassa.",
-        #         ip,
-        #     )
-        #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
+        else:
+            logger.warning(
+                "Got a request from the wrong IP: %s. It's not from Yookassa.",
+                ip,
+            )
+            raise AuthenticationFailed("Wrong client IP. Bad Request.")
 
 
 @extend_schema_view(
@@ -179,20 +156,14 @@ class CertificateOrderUseView(APIView):
     """
 
     def get(self, request, *args, **kwargs) -> Response:
-        try:
-            order_info = get_certificate_order_info(self.kwargs.get("id"))
-            serializer = CertificateOrderInfoSerializer(order_info)
-            return Response(serializer.data)
-        except CertificateOrderNotFoundError:
-            raise NotFound("Заказ не найден!")
+        order_info = get_certificate_order_info(self.kwargs.get("id"))
+        serializer = CertificateOrderInfoSerializer(order_info)
+        return Response(serializer.data)
 
     def post(self, request, *args, **kwargs) -> Response:
-        try:
-            order_info = use_certificate(self.kwargs.get("id"))
-            serializer = CertificateOrderInfoSerializer(order_info)
-            return Response(serializer.data)
-        except CertificateOrderNotFoundError:
-            raise NotFound("Заказ не найден!")
+        order_info = use_certificate(self.kwargs.get("id"))
+        serializer = CertificateOrderInfoSerializer(order_info)
+        return Response(serializer.data)
 
 
 @extend_schema(
@@ -208,8 +179,5 @@ class ResendOrderView(APIView):
     def post(self, request) -> Response:
         serializer = ResendCertificateOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            message = resend_certificates(serializer.validated_data)
-            return Response({"message": message})
-        except SendEmailError:
-            raise APIException("Ошибка при отправке письма. Попробуйте позже.")
+        message = resend_certificates(serializer.validated_data)
+        return Response({"message": message})

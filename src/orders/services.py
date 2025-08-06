@@ -10,10 +10,12 @@ from uuid import UUID
 import qrcode
 from django.conf import settings
 from django.core.mail import EmailMessage
+from django.db import IntegrityError, transaction
 from qrcode.image.base import BaseImage
 
 from orders.exceptions import (
     CertificateNotFoundError,
+    CertificateOrderCreateException,
     CertificateOrderNotFoundError,
     SendEmailError,
     UnexpectedYokassaNotificationStatus,
@@ -51,10 +53,7 @@ def _get_yookassa_notification_status(data: dict[str, Any]) -> str:
             data["object"]["status"],
             data["event"],
         )
-        raise UnexpectedYokassaNotificationStatus(
-            f"Unknown status {data["object"]["status"]} "
-            f"for event {data["event"]}"
-        )
+        raise UnexpectedYokassaNotificationStatus()
 
 
 def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
@@ -85,15 +84,16 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
     """
     try:
         certificate = get_certificate_by_id(id=data["id"])
-        customer = create_or_get_customer(
-            first_name=data["first_name"],
-            last_name=data["last_name"],
-            phone=data["phone"],
-        )
-        new_order = create_certificate_order(
-            certificate=certificate, email=data["email"], customer=customer
-        )
-        logger.info("New order created: %s", str(new_order))
+        with transaction.atomic():
+            customer = create_or_get_customer(
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+                phone=data["phone"],
+            )
+            new_order = create_certificate_order(
+                certificate=certificate, email=data["email"], customer=customer
+            )
+            logger.info("New order created: %s", str(new_order))
         payment = create_payment(
             value=certificate.value,
             description=str(new_order),
@@ -105,7 +105,10 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
         logger.warning(
             "Certificate not found! id: %s, error: %s", data["id"], error
         )
-        raise
+        raise CertificateNotFoundError()
+    except IntegrityError as error:
+        logger.warning("An error while creating an order: %s", error)
+        raise CertificateOrderCreateException()
 
 
 def send_certificate_to_client(order_id: UUID) -> None:
@@ -129,7 +132,7 @@ def send_certificate_to_client(order_id: UUID) -> None:
             email.send()
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
-        raise SendEmailError("Ошибка при отправке письма клиенту.")
+        raise SendEmailError()
 
 
 def resend_certificates(data: dict[str, str]) -> str:
@@ -155,7 +158,7 @@ def resend_certificates(data: dict[str, str]) -> str:
         return "Ваши актуальные сертификаты отправлены по указанному адресу."
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
-        raise SendEmailError("Ошибка при отправке письма клиенту.")
+        raise SendEmailError()
 
 
 def process_yookassa_notification(data: dict[str, Any]) -> None:
@@ -178,7 +181,7 @@ def process_yookassa_notification(data: dict[str, Any]) -> None:
             send_certificate_to_client(order_id)
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", data["id"], error)
-        raise
+        raise CertificateOrderNotFoundError()
 
 
 def get_certificate_order_info(id: UUID) -> dict[str, Any]:
@@ -187,7 +190,7 @@ def get_certificate_order_info(id: UUID) -> dict[str, Any]:
         return _form_order_info(order)
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", id, error)
-        raise
+        raise CertificateOrderNotFoundError()
 
 
 def use_certificate(id: UUID) -> dict[str, Any]:
@@ -202,4 +205,4 @@ def use_certificate(id: UUID) -> dict[str, Any]:
         return order_info
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", id, error)
-        raise
+        raise CertificateOrderNotFoundError()
