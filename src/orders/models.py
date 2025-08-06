@@ -42,6 +42,11 @@ class Certificate(models.Model):
 
 
 class Customer(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid4,
+        editable=False,
+    )
     first_name = models.CharField(
         verbose_name="Имя", max_length=150, blank=False, null=False
     )
@@ -116,4 +121,5 @@ class CertificateOrder(models.Model):
             f"Заказ от {self.created_at:%d-%m-%Y  %H:%M}."
             f"  Для '{self.email}',"
             f" на сумму — {self.certificate.value} ₽"
+            f" Заказчик — {self.customer}."
         )
