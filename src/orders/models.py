@@ -53,12 +53,12 @@ class Customer(models.Model):
     )
 
     class Meta:
-        verbose_name = "Покупатель"
-        verbose_name_plural = "Покупатели"
+        verbose_name = "Заказчик"
+        verbose_name_plural = "Заказчики"
         ordering = ["last_name"]
 
     def __str__(self) -> str:
-        return f"{self.first_name} {self.last_name} ({self.phone})"
+        return f"{self.first_name} {self.last_name}. Телефон: {self.phone}"
 
 
 class CertificateOrder(models.Model):
