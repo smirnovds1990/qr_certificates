@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import cast
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -31,6 +32,10 @@ from orders.services import (
     process_yookassa_notification,
     resend_certificates,
     use_certificate,
+)
+from orders.types import (
+    CertificateOrderFormScheme,
+    YookassaNotificationScheme,
 )
 
 
@@ -70,7 +75,9 @@ class CertificateOrderProcessingView(APIView):
     def post(self, request) -> Response:
         serializer = CertificateOrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        confirmation_url = process_certificate_order(serializer.validated_data)
+        confirmation_url = process_certificate_order(
+            cast(CertificateOrderFormScheme, serializer.validated_data)
+        )
         return Response({"confirmation_url": confirmation_url})
 
 
@@ -128,7 +135,9 @@ class PaymentStatusView(APIView):
         if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
             serializer = YookassaNotificationSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            process_yookassa_notification(serializer.validated_data)
+            process_yookassa_notification(
+                cast(YookassaNotificationScheme, serializer.validated_data)
+            )
             return Response(status=status.HTTP_200_OK)
         else:
             logger.warning(
@@ -183,5 +192,7 @@ class ResendOrderView(APIView):
     def post(self, request) -> Response:
         serializer = ResendCertificateOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        message = resend_certificates(serializer.validated_data)
+        message = resend_certificates(
+            cast(dict[str, str], serializer.validated_data)
+        )
         return Response({"message": message})

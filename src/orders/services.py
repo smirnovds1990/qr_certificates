@@ -11,14 +11,15 @@ import qrcode
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import IntegrityError, transaction
-from qrcode.image.base import BaseImage
+from qrcode.image.pil import PilImage
 
 from orders.exceptions import (
     CertificateNotFoundError,
-    CertificateOrderCreateException,
+    CertificateOrderCreateError,
     CertificateOrderNotFoundError,
+    NoConfirmationReturnedError,
     SendEmailError,
-    UnexpectedYokassaNotificationStatus,
+    UnexpectedYokassaNotificationStatusError,
 )
 from orders.models import CertificateOrder, OrderStatus
 from orders.repositories import (
@@ -30,13 +31,14 @@ from orders.repositories import (
     make_certificate_order_used,
     refresh_certificate_order_status,
 )
+from orders.types import CertificateOrderFormScheme, YookassaNotificationScheme
 from yookassa_services.services import create_payment
 
 
 logger = logging.getLogger(__name__)
 
 
-def _get_yookassa_notification_status(data: dict[str, Any]) -> str:
+def _get_yookassa_notification_status(data: YookassaNotificationScheme) -> str:
     if (
         data["event"] == "payment.succeeded"
         and data["object"]["status"] == "succeeded"
@@ -53,7 +55,7 @@ def _get_yookassa_notification_status(data: dict[str, Any]) -> str:
             data["object"]["status"],
             data["event"],
         )
-        raise UnexpectedYokassaNotificationStatus()
+        raise UnexpectedYokassaNotificationStatusError()
 
 
 def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
@@ -71,12 +73,12 @@ def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
     return order_info
 
 
-def _create_qr_code_with_order_url(order_id: UUID) -> BaseImage:
+def _create_qr_code_with_order_url(order_id: UUID) -> PilImage:
     certificate_url = urljoin(settings.BASE_URL, f"{order_id}/")
-    return qrcode.make(certificate_url)
+    return qrcode.make(certificate_url, image_factory=PilImage)
 
 
-def process_certificate_order(data: dict[str, UUID | str]) -> str:
+def process_certificate_order(data: CertificateOrderFormScheme) -> str:
     """
     Находит выбранный пользователем сертификат.
     Создает заказ с ним в статусе Pending.
@@ -100,6 +102,8 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
             order_id=new_order.id,
         )
         logger.info("Payment created for a new order: %s", str(new_order))
+        if payment.confirmation is None:
+            raise NoConfirmationReturnedError()
         return payment.confirmation["confirmation_url"]
     except CertificateNotFoundError as error:
         logger.warning(
@@ -108,7 +112,7 @@ def process_certificate_order(data: dict[str, UUID | str]) -> str:
         raise CertificateNotFoundError()
     except IntegrityError as error:
         logger.warning("An error while creating an order: %s", error)
-        raise CertificateOrderCreateException()
+        raise CertificateOrderCreateError()
 
 
 def send_certificate_to_client(order_id: UUID) -> None:
@@ -126,9 +130,9 @@ def send_certificate_to_client(order_id: UUID) -> None:
     )
     try:
         with BytesIO() as buffer:
-            image.save(buffer, format="png")
+            image.save(buffer, format="PNG")
             buffer.seek(0)
-            email.attach("qr_certificate.png", buffer.read(), "image/png")
+            email.attach(f"{order.id}.png", buffer.read(), "image/png")
             email.send()
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
@@ -148,7 +152,7 @@ def resend_certificates(data: dict[str, str]) -> str:
     for order in relevant_orders:
         image = _create_qr_code_with_order_url(order.id)
         with BytesIO() as buffer:
-            image.save(buffer, format="png")
+            image.save(buffer, format="PNG")
             buffer.seek(0)
             email_to_client.attach(
                 f"{order.id}.png", buffer.read(), "image/png"
@@ -161,7 +165,7 @@ def resend_certificates(data: dict[str, str]) -> str:
         raise SendEmailError()
 
 
-def process_yookassa_notification(data: dict[str, Any]) -> None:
+def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
     """
     Проверяет статус платежа, изменяет статус заказа в соответствии с ним.
     Создает QR-сертификат и отправляет клиенту, если оплата успешна.
@@ -180,7 +184,7 @@ def process_yookassa_notification(data: dict[str, Any]) -> None:
         if notification_status == "succeeded":
             send_certificate_to_client(order_id)
     except CertificateOrderNotFoundError as error:
-        logger.warning("Order not found! id: %s, error: %s", data["id"], error)
+        logger.warning("Order not found! id: %s, error: %s", order_id, error)
         raise CertificateOrderNotFoundError()
 
 
