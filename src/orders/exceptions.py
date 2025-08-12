@@ -13,7 +13,7 @@ class CertificateOrderNotFoundError(APIException):
     default_code = "order_not_found"
 
 
-class UnexpectedYokassaNotificationStatus(APIException):
+class UnexpectedYokassaNotificationStatusError(APIException):
     status_code = 400
     default_detail = "Неизвестный статус платежа от ЮКассы."
     default_code = "unexpected_yookassa_notification_status"
@@ -25,7 +25,13 @@ class SendEmailError(APIException):
     default_code = "send_email_error"
 
 
-class CertificateOrderCreateException(APIException):
+class CertificateOrderCreateError(APIException):
     status_code = 500
     default_detail = "Ошибка при создании клиента и заказа."
     default_code = "process_certificate_order_error"
+
+
+class NoConfirmationReturnedError(APIException):
+    status_code = 502
+    default_detail = "Ошибка при создании платежа."
+    default_code = "yookass_confirmation_error"
