@@ -19,11 +19,11 @@ ___
 - **BASE_URL** — базовый URL приложения вида: https://<domain.ru>/api/v1/
 
 - Настройки SMTP сервера для отправки сертификатов пользователям:
-**EMAIL_HOST**
-**EMAIL_PORT**
-**EMAIL_HOST_USER**
-**EMAIL_HOST_PASSWORD**
-**DEFAULT_FROM_EMAIL**
+    - **EMAIL_HOST**
+    - **EMAIL_PORT**
+    - **EMAIL_HOST_USER**
+    - **EMAIL_HOST_PASSWORD**
+    - **DEFAULT_FROM_EMAIL**
 3. Установите в личном кабинете ЮКассы URL для уведомлений об изменении статусов платежей.
 Личный кабинет --> Интеграция --> HTTP-уведомления --> Изменить настройки
 URL должен быть вида — `https://<domain.ru>/api/v1/changed-payment-status/`
