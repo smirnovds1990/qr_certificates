@@ -132,7 +132,7 @@ LOGGING = {
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "host.docker.internal"
+EMAIL_HOST = "mailhog"
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False  # Mailhog не требует TLS
 # EMAIL_HOST_USER = "your_email@example.com"
