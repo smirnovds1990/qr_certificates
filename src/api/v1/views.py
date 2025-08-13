@@ -1,5 +1,6 @@
 import logging
-import os
+
+# import os
 from typing import cast
 
 from drf_spectacular.types import OpenApiTypes
@@ -10,12 +11,13 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed
+
+# from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.utils import get_client_ip
+# from api.utils import get_client_ip
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
@@ -131,20 +133,20 @@ class PaymentStatusView(APIView):
     """
 
     def post(self, request) -> Response:
-        ip = get_client_ip(request)
-        if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
-            serializer = YookassaNotificationSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            process_yookassa_notification(
-                cast(YookassaNotificationScheme, serializer.validated_data)
-            )
-            return Response(status=status.HTTP_200_OK)
-        else:
-            logger.warning(
-                "Got a request from the wrong IP: %s. It's not from Yookassa.",
-                ip,
-            )
-            raise AuthenticationFailed("Wrong client IP. Bad Request.")
+        # ip = get_client_ip(request)
+        # if ip in os.getenv("YOOKASSA_NOTIFICATION_IPS", ""):
+        serializer = YookassaNotificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        process_yookassa_notification(
+            cast(YookassaNotificationScheme, serializer.validated_data)
+        )
+        return Response(status=status.HTTP_200_OK)
+        # else:
+        #     logger.warning(
+        #         "Got a request from the wrong IP: %s. It's not from Yookassa.",
+        #         ip,
+        #     )
+        #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
 
 
 @extend_schema_view(
