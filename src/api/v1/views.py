@@ -3,6 +3,8 @@ import logging
 # import os
 from typing import cast
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -44,6 +46,7 @@ from orders.types import (
 logger = logging.getLogger(__name__)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class CertificateListView(ListAPIView):
     """Получить все доступные для продажи сертификаты."""
 
@@ -51,6 +54,7 @@ class CertificateListView(ListAPIView):
     serializer_class = CertificateListSerializer
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 @extend_schema(
     request=CertificateOrderCreateSerializer,
     responses={
@@ -83,6 +87,7 @@ class CertificateOrderProcessingView(APIView):
         return Response({"confirmation_url": confirmation_url})
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 @extend_schema(responses={200: MessageResponseSerializer})
 class YookassaReturnUrlView(APIView):
     """Представление для редиректа с API ЮКассы после оплаты."""
@@ -98,6 +103,7 @@ class YookassaReturnUrlView(APIView):
         )
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 @extend_schema(
     responses={
         200: OpenApiResponse(
@@ -149,6 +155,7 @@ class PaymentStatusView(APIView):
         #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 @extend_schema_view(
     get=extend_schema(
         responses={
@@ -181,6 +188,7 @@ class CertificateOrderUseView(APIView):
         return Response(serializer.data)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 @extend_schema(
     request=ResendCertificateOrderSerializer,
     responses={
