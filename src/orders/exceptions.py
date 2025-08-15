@@ -35,3 +35,9 @@ class NoConfirmationReturnedError(APIException):
     status_code = 502
     default_detail = "Ошибка при создании платежа."
     default_code = "yookass_confirmation_error"
+
+
+class CertificateOrderStatusValidationError(APIException):
+    status_code = 400
+    default_detail = "Неизвестный статус заказа."
+    default_code = "certificate_order_status_error"
