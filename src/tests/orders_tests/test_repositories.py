@@ -5,8 +5,9 @@ import pytest
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
+    CertificateOrderStatusValidationError,
 )
-from orders.models import Certificate, CertificateOrder, Customer
+from orders.models import Certificate, CertificateOrder, Customer, OrderStatus
 from orders.repositories import (
     create_certificate_order,
     create_or_get_customer,
@@ -64,21 +65,33 @@ def test_create_certificate_order(
     assert new_order.customer == certificate_order_data["customer"]
 
 
-@pytest.mark.parametrize("new_status", ["succeeded", "canceled", "unknown"])
+@pytest.mark.parametrize(
+    "new_status", [OrderStatus.PAID, OrderStatus.CANCELLED]
+)
 def test_refresh_certificate_order_status(
     certificate_order: CertificateOrder, new_status: str
 ) -> None:
     status_before = certificate_order.status
-    assert status_before not in ["succeeded", "canceled"]
+    assert status_before == OrderStatus.PENDING
     refresh_certificate_order_status(certificate_order.id, new_status)
     certificate_order.refresh_from_db()
     assert certificate_order.status == new_status
 
 
-@pytest.mark.parametrize("new_status", ["succeeded", "canceled"])
+@pytest.mark.parametrize(
+    "new_status", [OrderStatus.PAID, OrderStatus.CANCELLED]
+)
 def test_refresh_certificate_order_status_with_wrong_order_id(
     new_status: str,
 ) -> None:
     fake_uuid = uuid4()
     with pytest.raises(CertificateOrderNotFoundError):
         refresh_certificate_order_status(fake_uuid, new_status)
+
+
+def test_refresh_certificate_order_status_raises_with_wrong_status(
+    certificate_order: CertificateOrder,
+) -> None:
+    unknown_status = "unknown"
+    with pytest.raises(CertificateOrderStatusValidationError):
+        refresh_certificate_order_status(certificate_order.id, unknown_status)
