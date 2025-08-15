@@ -5,6 +5,7 @@ from django.db.models.query import QuerySet
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
+    CertificateOrderStatusValidationError,
 )
 from orders.models import Certificate, CertificateOrder, Customer, OrderStatus
 
@@ -34,6 +35,10 @@ def create_certificate_order(
 
 
 def refresh_certificate_order_status(order_id: UUID, new_status: str) -> None:
+    if new_status not in OrderStatus.values:
+        raise CertificateOrderStatusValidationError(
+            f"Unknown status for a CertificateOrder: {new_status}"
+        )
     try:
         order = CertificateOrder.objects.get(id=order_id)
         order.status = new_status
