@@ -2,7 +2,10 @@ from uuid import uuid4
 
 import pytest
 
-from orders.exceptions import CertificateNotFoundError
+from orders.exceptions import (
+    CertificateNotFoundError,
+    CertificateOrderNotFoundError,
+)
 from orders.models import Certificate, CertificateOrder, Customer
 from orders.repositories import (
     create_certificate_order,
@@ -61,7 +64,7 @@ def test_create_certificate_order(
     assert new_order.customer == certificate_order_data["customer"]
 
 
-@pytest.mark.parametrize("new_status", ["succeeded", "canceled"])
+@pytest.mark.parametrize("new_status", ["succeeded", "canceled", "unknown"])
 def test_refresh_certificate_order_status(
     certificate_order: CertificateOrder, new_status: str
 ) -> None:
@@ -70,3 +73,12 @@ def test_refresh_certificate_order_status(
     refresh_certificate_order_status(certificate_order.id, new_status)
     certificate_order.refresh_from_db()
     assert certificate_order.status == new_status
+
+
+@pytest.mark.parametrize("new_status", ["succeeded", "canceled"])
+def test_refresh_certificate_order_status_with_wrong_order_id(
+    new_status: str,
+) -> None:
+    fake_uuid = uuid4()
+    with pytest.raises(CertificateOrderNotFoundError):
+        refresh_certificate_order_status(fake_uuid, new_status)
