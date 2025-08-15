@@ -66,6 +66,7 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}. Телефон: {self.phone}"
 
 
+# pyright: reportCallIssue=false
 class CertificateOrder(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -117,7 +118,7 @@ class CertificateOrder(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     status__in=[choice for choice, _ in OrderStatus.choices]
                 ),
                 name="valid_order_status",
