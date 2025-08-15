@@ -115,6 +115,14 @@ class CertificateOrder(models.Model):
         verbose_name = "Заказ сертификата"
         verbose_name_plural = "Заказы сертификатов"
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(
+                    status__in=[choice for choice, _ in OrderStatus.choices]
+                ),
+                name="valid_order_status",
+            )
+        ]
 
     def __str__(self) -> str:
         return (
