@@ -36,4 +36,4 @@ class CertificateOrderAdmin(admin.ModelAdmin):
         "customer",
     ]
     search_fields = ["email", "created_at"]
-    readonly_fields = ["is_used", "status", "created_at", "updated_at"]
+    readonly_fields = ["status", "created_at", "updated_at"]
