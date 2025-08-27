@@ -3,6 +3,7 @@ import logging
 # import os
 from typing import cast
 
+from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.types import OpenApiTypes
@@ -31,6 +32,7 @@ from api.v1.serializers import (
 )
 from orders.models import Certificate
 from orders.services import (
+    generate_order_qr_code_by_id,
     get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
@@ -206,3 +208,18 @@ class ResendOrderView(APIView):
             cast(dict[str, str], serializer.validated_data)
         )
         return Response({"message": message})
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+@extend_schema(
+    responses={
+        200: OpenApiResponse(description="PNG с QR-кодом"),
+        500: OpenApiResponse(description="Ошибка при генерации QR-кода."),
+    }
+)
+class GenerateQRView(APIView):
+    """Генерация QR-кода при нажатии кнопки 'Расплатиться сертификатом'."""
+
+    def post(self, request, *args, **kwargs) -> HttpResponse:
+        qr_code = generate_order_qr_code_by_id(self.kwargs.get("id"))
+        return HttpResponse(qr_code, content_type="image/png")

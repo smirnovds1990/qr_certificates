@@ -4,6 +4,7 @@ from api.v1.views import (
     CertificateListView,
     CertificateOrderProcessingView,
     CertificateOrderUseView,
+    GenerateQRView,
     PaymentStatusView,
     ResendOrderView,
     YookassaReturnUrlView,
@@ -32,5 +33,10 @@ urlpatterns = [
         "certificate-order/resend/",
         ResendOrderView.as_view(),
         name="resend_certificate_order",
+    ),
+    path(
+        "generate-qrcode/<uuid:id>/",
+        GenerateQRView.as_view(),
+        name="generate_qrcode",
     ),
 ]

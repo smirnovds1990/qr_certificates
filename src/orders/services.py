@@ -75,8 +75,15 @@ def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
 
 
 def _create_qr_code_with_order_url(order_id: UUID) -> PilImage:
-    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/")
+    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/change/")
     return qrcode.make(certificate_url, image_factory=PilImage)
+
+
+def generate_order_qr_code_by_id(order_id: UUID) -> bytes:
+    image = _create_qr_code_with_order_url(order_id)
+    with BytesIO() as buffer:
+        image.save(buffer, format="PNG")
+        return buffer.getvalue()
 
 
 def process_certificate_order(data: CertificateOrderFormScheme) -> str:
