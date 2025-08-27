@@ -13,6 +13,7 @@ from django.core.mail import EmailMessage
 from django.db import IntegrityError, transaction
 from qrcode.image.pil import PilImage
 
+from orders.constants import MESSAGE, MESSAGE_INSTRUCTION
 from orders.exceptions import (
     CertificateNotFoundError,
     CertificateOrderCreateError,
@@ -115,25 +116,31 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
         raise CertificateOrderCreateError()
 
 
-def send_certificate_to_client(order_id: UUID) -> None:
+def send_message_to_client(order_id: UUID) -> None:
     order = get_order_by_id(order_id)
-    image = _create_qr_code_with_order_url(order_id)
+    # image = _create_qr_code_with_order_url(order_id)
+    # Сгенерировать ссылку на фронтенд, чтобы прикрепить ее к письму
     email = EmailMessage(
-        subject="Ваш QR-сертификат",
+        subject="Вам подарок от HOME",
         body=(
-            "Приобретённый вами сертификат "
-            f"на сумму {order.certificate.value} во вложении. "
-            "Спасибо!"
+            "\n".join(
+                [
+                    MESSAGE,
+                    f"Номинал: {order.certificate.value}\n",
+                    MESSAGE_INSTRUCTION,
+                ]
+            )
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[order.email],
     )
     try:
-        with BytesIO() as buffer:
-            image.save(buffer, format="PNG")
-            buffer.seek(0)
-            email.attach(f"{order.id}.png", buffer.read(), "image/png")
-            email.send()
+        email.send()
+        # with BytesIO() as buffer:
+        #     image.save(buffer, format="PNG")
+        #     buffer.seek(0)
+        #     email.attach(f"{order.id}.png", buffer.read(), "image/png")
+        #     email.send()
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
         raise SendEmailError()
@@ -182,7 +189,7 @@ def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
             new_status=expected_statuses[notification_status],
         )
         if notification_status == "succeeded":
-            send_certificate_to_client(order_id)
+            send_message_to_client(order_id)
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", order_id, error)
         raise CertificateOrderNotFoundError()
