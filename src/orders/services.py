@@ -167,3 +167,12 @@ def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", order_id, error)
         raise CertificateOrderNotFoundError()
+
+
+def get_certificate_order_info(id: UUID) -> dict[str, Any]:
+    try:
+        order = get_order_by_id(id)
+        return _form_order_info(order)
+    except CertificateOrderNotFoundError as error:
+        logger.warning("Order not found! id: %s, error: %s", id, error)
+        raise CertificateOrderNotFoundError()

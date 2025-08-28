@@ -39,3 +39,20 @@ class UrlResponseSerializer(serializers.Serializer):
     """Для возврата URL от ЮКассы."""
 
     confirmation_url = serializers.URLField()
+
+
+class NestedMessagesSerializer(serializers.Serializer):
+    """Для вложенных сообщений при списании заказа."""
+
+    is_used = serializers.CharField(required=False)
+    status = serializers.CharField(required=False)
+
+
+class CertificateOrderInfoSerializer(serializers.Serializer):
+    """Для возврата информации о заказе при сканировании QR-сертификата."""
+
+    email = serializers.EmailField()
+    certificate_value = serializers.IntegerField()
+    is_used = serializers.BooleanField()
+    status = serializers.CharField()
+    messages = NestedMessagesSerializer()

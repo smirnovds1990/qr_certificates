@@ -22,11 +22,13 @@ from rest_framework.views import APIView
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
+    CertificateOrderInfoSerializer,
     UrlResponseSerializer,
     YookassaNotificationSerializer,
 )
 from orders.models import Certificate
 from orders.services import (
+    get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
 )
@@ -130,3 +132,19 @@ class PaymentStatusView(APIView):
         #         ip,
         #     )
         #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+@extend_schema(
+    responses={
+        200: CertificateOrderInfoSerializer,
+        404: OpenApiResponse(description="Заказ не найден"),
+    },
+)
+class CertificateOrderUseView(APIView):
+    """Выдает данные заказа."""
+
+    def get(self, request, *args, **kwargs) -> Response:
+        order_info = get_certificate_order_info(self.kwargs.get("id"))
+        serializer = CertificateOrderInfoSerializer(order_info)
+        return Response(serializer.data)
