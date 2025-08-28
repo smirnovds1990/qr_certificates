@@ -2,7 +2,8 @@ import logging
 import smtplib
 import socket
 import ssl
-from io import BytesIO
+
+# from io import BytesIO
 from typing import Any
 from urllib.parse import urljoin
 from uuid import UUID
@@ -28,8 +29,6 @@ from orders.repositories import (
     create_or_get_customer,
     get_certificate_by_id,
     get_order_by_id,
-    get_orders_by_email,
-    make_certificate_order_used,
     refresh_certificate_order_status,
 )
 from orders.types import CertificateOrderFormScheme, YookassaNotificationScheme
@@ -77,13 +76,6 @@ def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
 def _create_qr_code_with_order_url(order_id: UUID) -> PilImage:
     certificate_url = urljoin(settings.BASE_URL, f"{order_id}/change/")
     return qrcode.make(certificate_url, image_factory=PilImage)
-
-
-def generate_order_qr_code_by_id(order_id: UUID) -> bytes:
-    image = _create_qr_code_with_order_url(order_id)
-    with BytesIO() as buffer:
-        image.save(buffer, format="PNG")
-        return buffer.getvalue()
 
 
 def process_certificate_order(data: CertificateOrderFormScheme) -> str:
@@ -153,32 +145,6 @@ def send_message_to_client(order_id: UUID) -> None:
         raise SendEmailError()
 
 
-def resend_certificates(data: dict[str, str]) -> str:
-    relevant_orders = get_orders_by_email(data["email"])
-    if not relevant_orders.exists():
-        return "Для данного клиента нет актуальных заказов."
-    email_to_client = EmailMessage(
-        subject="Ваш QR-сертификат",
-        body=("Приобретённые вами сертификаты во вложении."),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[data["email"]],
-    )
-    for order in relevant_orders:
-        image = _create_qr_code_with_order_url(order.id)
-        with BytesIO() as buffer:
-            image.save(buffer, format="PNG")
-            buffer.seek(0)
-            email_to_client.attach(
-                f"{order.id}.png", buffer.read(), "image/png"
-            )
-    try:
-        email_to_client.send()
-        return "Ваши актуальные сертификаты отправлены по указанному адресу."
-    except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
-        logger.warning("Ошибка при отправке письма клиенту. %s", error)
-        raise SendEmailError()
-
-
 def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
     """
     Проверяет статус платежа, изменяет статус заказа в соответствии с ним.
@@ -199,28 +165,4 @@ def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
             send_message_to_client(order_id)
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", order_id, error)
-        raise CertificateOrderNotFoundError()
-
-
-def get_certificate_order_info(id: UUID) -> dict[str, Any]:
-    try:
-        order = get_order_by_id(id)
-        return _form_order_info(order)
-    except CertificateOrderNotFoundError as error:
-        logger.warning("Order not found! id: %s, error: %s", id, error)
-        raise CertificateOrderNotFoundError()
-
-
-def use_certificate(id: UUID) -> dict[str, Any]:
-    try:
-        order = get_order_by_id(id)
-        order_info = _form_order_info(order)
-        if not order.status == OrderStatus.PAID or order.is_used:
-            return order_info
-        changed_order = make_certificate_order_used(order)
-        order_info["is_used"] = changed_order.is_used
-        order_info["messages"]["is_used"] = "Сертификат списан успешно."
-        return order_info
-    except CertificateOrderNotFoundError as error:
-        logger.warning("Order not found! id: %s, error: %s", id, error)
         raise CertificateOrderNotFoundError()

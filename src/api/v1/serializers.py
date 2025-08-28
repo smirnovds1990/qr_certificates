@@ -35,29 +35,6 @@ class YookassaNotificationSerializer(serializers.Serializer):
     object = YookassaNotificationObjectSerializer()
 
 
-class NestedMessagesSerializer(serializers.Serializer):
-    """Для вложенных сообщений при списании заказа."""
-
-    is_used = serializers.CharField(required=False)
-    status = serializers.CharField(required=False)
-
-
-class CertificateOrderInfoSerializer(serializers.Serializer):
-    """Для возврата информации о заказе при сканировании QR-сертификата."""
-
-    email = serializers.EmailField()
-    certificate_value = serializers.IntegerField()
-    is_used = serializers.BooleanField()
-    status = serializers.CharField()
-    messages = NestedMessagesSerializer()
-
-
-class ResendCertificateOrderSerializer(serializers.Serializer):
-    """Для повторной отправки сертификата."""
-
-    email = serializers.EmailField()
-
-
 class MessageResponseSerializer(serializers.Serializer):
     """Для сообщений в ответах API."""
 

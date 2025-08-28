@@ -3,7 +3,6 @@ import logging
 # import os
 from typing import cast
 
-from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.types import OpenApiTypes
@@ -11,7 +10,6 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
     extend_schema,
-    extend_schema_view,
 )
 from rest_framework import status
 
@@ -24,20 +22,14 @@ from rest_framework.views import APIView
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
-    CertificateOrderInfoSerializer,
     MessageResponseSerializer,
-    ResendCertificateOrderSerializer,
     UrlResponseSerializer,
     YookassaNotificationSerializer,
 )
 from orders.models import Certificate
 from orders.services import (
-    generate_order_qr_code_by_id,
-    get_certificate_order_info,
     process_certificate_order,
     process_yookassa_notification,
-    resend_certificates,
-    use_certificate,
 )
 from orders.types import (
     CertificateOrderFormScheme,
@@ -155,71 +147,3 @@ class PaymentStatusView(APIView):
         #         ip,
         #     )
         #     raise AuthenticationFailed("Wrong client IP. Bad Request.")
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-@extend_schema_view(
-    get=extend_schema(
-        responses={
-            200: CertificateOrderInfoSerializer,
-            404: OpenApiResponse(description="Заказ не найден"),
-        },
-    ),
-    post=extend_schema(
-        responses={
-            200: CertificateOrderInfoSerializer,
-            404: OpenApiResponse(description="Заказ не найден"),
-        },
-    ),
-)
-class CertificateOrderUseView(APIView):
-    """
-    Использование сертификата.
-    При GET-запросе — выдает данные заказа, ожидает списание.
-    При POST-запросе — списывает заказ (CertificateOrder.is_used = True).
-    """
-
-    def get(self, request, *args, **kwargs) -> Response:
-        order_info = get_certificate_order_info(self.kwargs.get("id"))
-        serializer = CertificateOrderInfoSerializer(order_info)
-        return Response(serializer.data)
-
-    def post(self, request, *args, **kwargs) -> Response:
-        order_info = use_certificate(self.kwargs.get("id"))
-        serializer = CertificateOrderInfoSerializer(order_info)
-        return Response(serializer.data)
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-@extend_schema(
-    request=ResendCertificateOrderSerializer,
-    responses={
-        200: MessageResponseSerializer,
-        500: OpenApiResponse(description="Ошибка при отправке письма."),
-    },
-)
-class ResendOrderView(APIView):
-    """Повторная отправка сертификата по запросу клиента."""
-
-    def post(self, request) -> Response:
-        serializer = ResendCertificateOrderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        message = resend_certificates(
-            cast(dict[str, str], serializer.validated_data)
-        )
-        return Response({"message": message})
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-@extend_schema(
-    responses={
-        200: OpenApiResponse(description="PNG с QR-кодом"),
-        500: OpenApiResponse(description="Ошибка при генерации QR-кода."),
-    }
-)
-class GenerateQRView(APIView):
-    """Генерация QR-кода при нажатии кнопки 'Расплатиться сертификатом'."""
-
-    def post(self, request, *args, **kwargs) -> HttpResponse:
-        qr_code = generate_order_qr_code_by_id(self.kwargs.get("id"))
-        return HttpResponse(qr_code, content_type="image/png")
