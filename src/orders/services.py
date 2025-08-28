@@ -125,6 +125,7 @@ def send_message_to_client(order_id: UUID) -> None:
             "\n".join(
                 [
                     MESSAGE,
+                    f"http://localhost:5173/certificates/{order_id}\n"
                     f"Номинал: {order.certificate.value}\n",
                     MESSAGE_INSTRUCTION,
                 ]
