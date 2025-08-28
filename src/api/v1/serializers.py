@@ -51,6 +51,7 @@ class NestedMessagesSerializer(serializers.Serializer):
 class CertificateOrderInfoSerializer(serializers.Serializer):
     """Для возврата информации о заказе при сканировании QR-сертификата."""
 
+    id = serializers.UUIDField()
     email = serializers.EmailField()
     certificate_value = serializers.IntegerField()
     is_used = serializers.BooleanField()

@@ -60,6 +60,7 @@ def _get_yookassa_notification_status(data: YookassaNotificationScheme) -> str:
 
 def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
     order_info = {
+        "id": order.id,
         "email": order.email,
         "certificate_value": order.certificate.value,
         "is_used": order.is_used,
