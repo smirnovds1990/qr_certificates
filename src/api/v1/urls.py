@@ -4,7 +4,6 @@ from api.v1.views import (
     CertificateListView,
     CertificateOrderProcessingView,
     PaymentStatusView,
-    YookassaReturnUrlView,
 )
 
 
@@ -15,7 +14,6 @@ urlpatterns = [
         CertificateOrderProcessingView.as_view(),
         name="create_certificate_order",
     ),
-    path("return-url/", YookassaReturnUrlView.as_view(), name="return_url"),
     path(
         "changed-payment-status/",
         PaymentStatusView.as_view(),

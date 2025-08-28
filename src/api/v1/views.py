@@ -22,7 +22,6 @@ from rest_framework.views import APIView
 from api.v1.serializers import (
     CertificateListSerializer,
     CertificateOrderCreateSerializer,
-    MessageResponseSerializer,
     UrlResponseSerializer,
     YookassaNotificationSerializer,
 )
@@ -79,22 +78,6 @@ class CertificateOrderProcessingView(APIView):
             cast(CertificateOrderFormScheme, serializer.validated_data)
         )
         return Response({"confirmation_url": confirmation_url})
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-@extend_schema(responses={200: MessageResponseSerializer})
-class YookassaReturnUrlView(APIView):
-    """Представление для редиректа с API ЮКассы после оплаты."""
-
-    def get(self, request) -> Response:
-        return Response(
-            {
-                "message": (
-                    "Спасибо за ваш заказ. "
-                    "Сертификат будет отправлен на указанный email."
-                )
-            }
-        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")

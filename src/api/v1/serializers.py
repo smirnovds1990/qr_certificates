@@ -35,12 +35,6 @@ class YookassaNotificationSerializer(serializers.Serializer):
     object = YookassaNotificationObjectSerializer()
 
 
-class MessageResponseSerializer(serializers.Serializer):
-    """Для сообщений в ответах API."""
-
-    message = serializers.CharField()
-
-
 class UrlResponseSerializer(serializers.Serializer):
     """Для возврата URL от ЮКассы."""
 
