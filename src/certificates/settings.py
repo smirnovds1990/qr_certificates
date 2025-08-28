@@ -143,6 +143,7 @@ EMAIL_USE_TLS = False  # Mailhog не требует TLS
 DEFAULT_FROM_EMAIL = "store@mail.com"
 
 BASE_URL = env("BASE_URL")
+RETURN_URL = env("RETURN_URL")
 
 CORS_ALLOW_ALL_ORIGINS = True
 

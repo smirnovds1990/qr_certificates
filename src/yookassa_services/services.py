@@ -1,6 +1,8 @@
 import os
+from urllib.parse import urljoin
 from uuid import UUID, uuid4
 
+from django.conf import settings
 from yookassa import Configuration, Payment
 from yookassa.domain.response import PaymentResponse
 
@@ -22,7 +24,7 @@ def create_payment(
             "amount": {"value": f"{value:.2f}", "currency": CURRENCY_RUB},
             "confirmation": {
                 "type": REDIRECT_CONFIRMATION_TYPE,
-                "return_url": os.getenv("RETURN_URL"),
+                "return_url": urljoin(settings.RETURN_URL, f"{order_id}/"),
             },
             "capture": True,
             "description": description,
