@@ -19,6 +19,8 @@ services:
       - "8000:8000"
     depends_on:
       - backend_db
+    volumes:
+     - media_data:/src/media
   mailhog:
     image: mailhog/mailhog:latest
     restart: always
@@ -27,3 +29,4 @@ services:
       - "8025:8025"   # Web UI
 volumes:
   pg_data:
+  media_data:
