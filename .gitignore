@@ -208,3 +208,6 @@ __marimo__/
 
 # Some MacOS shit
 .DS_Store
+
+# Project images
+/src/media
