@@ -66,6 +66,38 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}. Телефон: {self.phone}"
 
 
+class CertificateDesign(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid4,
+        editable=False,
+    )
+    name = models.CharField(
+        verbose_name="Название",
+        max_length=100,
+        unique=True,
+        help_text="Введите название сертификата (не более 100 символов)",
+    )
+    image = models.ImageField(
+        verbose_name="Изображение",
+        upload_to="certificates_designs/",
+        help_text="Выберите изображение",
+    )
+    is_active = models.BooleanField(verbose_name="Активен", default=True)
+    created_at = models.DateTimeField(
+        verbose_name="Дата создания",
+        auto_now_add=True,
+    )
+
+    class Meta:
+        verbose_name = "Дизайн сертификата"
+        verbose_name_plural = "Дизайны сертификатов"
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 # pyright: reportCallIssue=false
 class CertificateOrder(models.Model):
     id = models.UUIDField(
@@ -79,6 +111,15 @@ class CertificateOrder(models.Model):
         verbose_name="Сертификат",
         related_name="orders",
         help_text="Выберите сертификат",
+    )
+    design = models.ForeignKey(
+        CertificateDesign,
+        on_delete=models.PROTECT,
+        verbose_name="Дизайн сертификата",
+        related_name="orders",
+        help_text="Выберите дизайн сертификата",
+        blank=True,
+        null=True,
     )
     email = models.EmailField(
         verbose_name="Email для отправки",
