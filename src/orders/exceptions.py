@@ -7,6 +7,12 @@ class CertificateNotFoundError(APIException):
     default_code = "certificate_not_found"
 
 
+class CertificateDesignNotFoundError(APIException):
+    status_code = 404
+    default_detail = "Изображение не найдено."
+    default_code = "certificate_design_not_found"
+
+
 class CertificateOrderNotFoundError(APIException):
     status_code = 404
     default_detail = "Заказ не найден."
