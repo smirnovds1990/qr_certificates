@@ -1,6 +1,7 @@
 from django.urls import path
 
 from api.v1.views import (
+    CertificateDesignListView,
     CertificateListView,
     CertificateOrderProcessingView,
     CertificateOrderUseView,
@@ -24,5 +25,10 @@ urlpatterns = [
         "certificate-order/<uuid:id>/",
         CertificateOrderUseView.as_view(),
         name="use_certificate",
+    ),
+    path(
+        "certificate-designs/",
+        CertificateDesignListView.as_view(),
+        name="certificate_designs",
     ),
 ]

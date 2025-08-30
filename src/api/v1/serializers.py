@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from orders.models import Certificate
+from orders.models import Certificate, CertificateDesign
 
 
 class CertificateListSerializer(serializers.ModelSerializer):
@@ -57,3 +57,12 @@ class CertificateOrderInfoSerializer(serializers.Serializer):
     is_used = serializers.BooleanField()
     status = serializers.CharField()
     messages = NestedMessagesSerializer()
+
+
+class CertificateDesignListSerializer(serializers.ModelSerializer):
+
+    image = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = CertificateDesign
+        fields = ("name", "image")
