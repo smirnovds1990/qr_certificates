@@ -9,7 +9,8 @@ from uuid import UUID
 class CertificateOrderFormScheme(TypedDict):
     """Для данных из формы покупки сертификата."""
 
-    id: UUID
+    certificate_id: UUID
+    design_id: UUID
     email: str
     first_name: str
     last_name: str
