@@ -28,6 +28,7 @@ from orders.repositories import (
     create_certificate_order,
     create_or_get_customer,
     get_certificate_by_id,
+    get_design_by_id,
     get_order_by_id,
     refresh_certificate_order_status,
 )
@@ -59,10 +60,15 @@ def _get_yookassa_notification_status(data: YookassaNotificationScheme) -> str:
 
 
 def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
+    if order.design is None:
+        design = "Нет изображения"
+    else:
+        design = order.design.image.url
     order_info = {
         "id": order.id,
         "email": order.email,
         "certificate_value": order.certificate.value,
+        "certificate_design": design,
         "is_used": order.is_used,
         "status": order.status,
         "messages": {},
@@ -86,7 +92,8 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
     Возвращает URL ЮКассы для оплаты.
     """
     try:
-        certificate = get_certificate_by_id(id=data["id"])
+        certificate = get_certificate_by_id(id=data["certificate_id"])
+        design = get_design_by_id(id=data["design_id"])
         with transaction.atomic():
             customer = create_or_get_customer(
                 first_name=data["first_name"],
@@ -94,7 +101,10 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
                 phone=data["phone"],
             )
             new_order = create_certificate_order(
-                certificate=certificate, email=data["email"], customer=customer
+                certificate=certificate,
+                design=design,
+                email=data["email"],
+                customer=customer,
             )
             logger.info("New order created: %s", str(new_order))
         payment = create_payment(

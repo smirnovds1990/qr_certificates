@@ -142,12 +142,14 @@ class PaymentStatusView(APIView):
         404: OpenApiResponse(description="Заказ не найден"),
     }
 )
-class CertificateOrderUseView(APIView):
+class CertificateOrderRetrieveView(APIView):
     """Выдает данные заказа."""
 
     def get(self, request, *args, **kwargs) -> Response:
         order_info = get_certificate_order_info(self.kwargs.get("id"))
-        serializer = CertificateOrderInfoSerializer(order_info)
+        serializer = CertificateOrderInfoSerializer(
+            order_info, context={"request": request}
+        )
         return Response(serializer.data)
 
 

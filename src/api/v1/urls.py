@@ -4,7 +4,7 @@ from api.v1.views import (
     CertificateDesignListView,
     CertificateListView,
     CertificateOrderProcessingView,
-    CertificateOrderUseView,
+    CertificateOrderRetrieveView,
     PaymentStatusView,
 )
 
@@ -23,7 +23,7 @@ urlpatterns = [
     ),
     path(
         "certificate-order/<uuid:id>/",
-        CertificateOrderUseView.as_view(),
+        CertificateOrderRetrieveView.as_view(),
         name="use_certificate",
     ),
     path(

@@ -13,7 +13,8 @@ class CertificateListSerializer(serializers.ModelSerializer):
 class CertificateOrderCreateSerializer(serializers.Serializer):
     """Для данных, выбранных пользователем при покупке сертификата."""
 
-    id = serializers.UUIDField()
+    certificate_id = serializers.UUIDField()
+    design_id = serializers.UUIDField()
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150)
     last_name = serializers.CharField(max_length=150)
@@ -54,9 +55,19 @@ class CertificateOrderInfoSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     email = serializers.EmailField()
     certificate_value = serializers.IntegerField()
+    certificate_design = serializers.SerializerMethodField()
     is_used = serializers.BooleanField()
     status = serializers.CharField()
     messages = NestedMessagesSerializer()
+
+    def get_certificate_design(self, obj):
+        request = self.context.get("request")
+        url = obj.get("certificate_design")
+        return (
+            request.build_absolute_uri(url)
+            if request and url != "Нет изображения"
+            else "Нет изображения"
+        )
 
 
 class CertificateDesignListSerializer(serializers.ModelSerializer):
@@ -65,4 +76,4 @@ class CertificateDesignListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CertificateDesign
-        fields = ("name", "image")
+        fields = ("id", "name", "image")

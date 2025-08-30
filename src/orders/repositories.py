@@ -1,11 +1,18 @@
 from uuid import UUID
 
 from orders.exceptions import (
+    CertificateDesignNotFoundError,
     CertificateNotFoundError,
     CertificateOrderNotFoundError,
     CertificateOrderStatusValidationError,
 )
-from orders.models import Certificate, CertificateOrder, Customer, OrderStatus
+from orders.models import (
+    Certificate,
+    CertificateDesign,
+    CertificateOrder,
+    Customer,
+    OrderStatus,
+)
 
 
 def get_certificate_by_id(id: UUID) -> Certificate:
@@ -13,6 +20,15 @@ def get_certificate_by_id(id: UUID) -> Certificate:
         return Certificate.objects.get(id=id)
     except Certificate.DoesNotExist:
         raise CertificateNotFoundError(f"Certificate with id: {id} not found.")
+
+
+def get_design_by_id(id: UUID) -> CertificateDesign:
+    try:
+        return CertificateDesign.objects.get(id=id)
+    except CertificateDesign.DoesNotExist:
+        raise CertificateDesignNotFoundError(
+            f"Certificate design with id: {id} not found."
+        )
 
 
 def create_or_get_customer(
@@ -25,10 +41,16 @@ def create_or_get_customer(
 
 
 def create_certificate_order(
-    certificate: Certificate, email: str, customer: Customer
+    certificate: Certificate,
+    design: CertificateDesign,
+    email: str,
+    customer: Customer,
 ) -> CertificateOrder:
     return CertificateOrder.objects.create(
-        certificate=certificate, email=email, customer=customer
+        certificate=certificate,
+        design=design,
+        email=email,
+        customer=customer,
     )
 
 
