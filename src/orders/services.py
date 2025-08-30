@@ -2,17 +2,12 @@ import logging
 import smtplib
 import socket
 import ssl
-
-# from io import BytesIO
 from typing import Any
-from urllib.parse import urljoin
 from uuid import UUID
 
-import qrcode
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import IntegrityError, transaction
-from qrcode.image.pil import PilImage
 
 from orders.constants import MESSAGE, MESSAGE_INSTRUCTION
 from orders.exceptions import (
@@ -80,11 +75,6 @@ def _form_order_info(order: CertificateOrder) -> dict[str, Any]:
     return order_info
 
 
-def _create_qr_code_with_order_url(order_id: UUID) -> PilImage:
-    certificate_url = urljoin(settings.BASE_URL, f"{order_id}/change/")
-    return qrcode.make(certificate_url, image_factory=PilImage)
-
-
 def process_certificate_order(data: CertificateOrderFormScheme) -> str:
     """
     Находит выбранный пользователем сертификат.
@@ -118,7 +108,9 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
         return payment.confirmation["confirmation_url"]
     except CertificateNotFoundError as error:
         logger.warning(
-            "Certificate not found! id: %s, error: %s", data["id"], error
+            "Certificate not found! id: %s, error: %s",
+            data["certificate_id"],
+            error,
         )
         raise CertificateNotFoundError()
     except IntegrityError as error:
@@ -128,8 +120,6 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
 
 def send_message_to_client(order_id: UUID) -> None:
     order = get_order_by_id(order_id)
-    # image = _create_qr_code_with_order_url(order_id)
-    # Сгенерировать ссылку на фронтенд, чтобы прикрепить ее к письму
     email = EmailMessage(
         subject="Вам подарок от HOME",
         body=(
@@ -147,11 +137,6 @@ def send_message_to_client(order_id: UUID) -> None:
     )
     try:
         email.send()
-        # with BytesIO() as buffer:
-        #     image.save(buffer, format="PNG")
-        #     buffer.seek(0)
-        #     email.attach(f"{order.id}.png", buffer.read(), "image/png")
-        #     email.send()
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
         raise SendEmailError()
