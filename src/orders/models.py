@@ -88,11 +88,26 @@ class CertificateDesign(models.Model):
         verbose_name="Дата создания",
         auto_now_add=True,
     )
+    order = models.PositiveIntegerField(editable=False, blank=True, null=True)
 
     class Meta:
         verbose_name = "Дизайн сертификата"
         verbose_name_plural = "Дизайны сертификатов"
-        ordering = ["name"]
+        ordering = ["order", "name"]
+
+    def save(self, *args, **kwargs):
+        if self.order is None:
+            try:
+                self.order = int(self.name)
+            except (TypeError, ValueError):
+                last = (
+                    CertificateDesign.objects.aggregate(models.Max("order"))[
+                        "order__max"
+                    ]
+                    or 0
+                )
+                self.order = last + 1
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.name
