@@ -10,6 +10,7 @@ from uuid import UUID
 from django.conf import settings
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.db import IntegrityError, transaction
+from django.utils.timezone import localtime
 
 from orders.constants import MESSAGE, MESSAGE_INSTRUCTION
 from orders.exceptions import (
@@ -173,15 +174,16 @@ def send_message_to_client(order_id: UUID) -> None:
 
 def send_message_to_admin(order_id: UUID) -> None:
     order = get_order_by_id(order_id)
+    order_time = localtime(order.created_at)
     message_content = "\n".join(
         [
             "Куплен новый сертификат.\n",
-            f"Имя: {order.customer.first_name}\n"
-            f"Фамилия: {order.customer.last_name}\n"
-            f"Телефон: {order.customer.phone}\n"
-            f"Email: {order.email}\n"
-            f"Сумма: {order.certificate.value}\n"
-            f"Дата и время покупки: {order.created_at}\n",
+            f"Имя: {order.customer.first_name}\n",
+            f"Фамилия: {order.customer.last_name}\n",
+            f"Телефон: {order.customer.phone}\n",
+            f"Email: {order.email}\n",
+            f"Сумма: {order.certificate.value}\n",
+            f"Дата и время покупки: {order_time.strftime('%d-%m-%Y %H:%M:%S')}",
         ]
     )
     admin_email = os.getenv("ADMIN_EMAIL")
