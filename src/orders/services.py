@@ -1,12 +1,14 @@
 import logging
+import os
 import smtplib
 import socket
 import ssl
+from email.mime.image import MIMEImage
 from typing import Any
 from uuid import UUID
 
 from django.conf import settings
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.db import IntegrityError, transaction
 
 from orders.constants import MESSAGE, MESSAGE_INSTRUCTION
@@ -120,26 +122,87 @@ def process_certificate_order(data: CertificateOrderFormScheme) -> str:
 
 def send_message_to_client(order_id: UUID) -> None:
     order = get_order_by_id(order_id)
-    email = EmailMessage(
+    text_content = "\n".join(
+        [
+            MESSAGE,
+            "https://certificates-qr-vgrs.vercel.app/certificates/"
+            f"{order_id}\n\n"
+            f"Номинал: {order.certificate.value}\n",
+            MESSAGE_INSTRUCTION.replace("\n", "<br>"),
+        ]
+    )
+    html_content = f"""
+    <p>{MESSAGE}</p>
+    <p>
+      <a href="https://certificates-qr-vgrs.vercel.app/certificates/{order_id}">
+          Перейти к сертификату
+      </a>
+    </p>
+    <p>Номинал: {order.certificate.value} ₽</p>
+    <p><img src="cid:design_img" width="600" alt="Сертификат"></p>
+    <p>{MESSAGE_INSTRUCTION}</p>
+    """
+    email_message = EmailMultiAlternatives(
         subject="Вам подарок от HOME",
-        body=(
-            "\n".join(
-                [
-                    MESSAGE,
-                    "https://certificates-qr-vgrs.vercel.app/certificates/"
-                    f"{order_id}\n\n"
-                    f"Номинал: {order.certificate.value}\n",
-                    MESSAGE_INSTRUCTION,
-                ]
-            )
-        ),
+        body=text_content,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[order.email],
     )
+    email_message.attach_alternative(html_content, "text/html")
     try:
-        email.send()
+        image_path = order.design.image.path
+        with open(image_path, "rb") as file:
+            img = MIMEImage(file.read())
+            img.add_header("Content-ID", "<design_img>")
+            img.add_header(
+                "Content-Disposition",
+                "inline",
+                filename=os.path.basename(image_path),
+            )
+            email_message.attach(img)
+    except FileNotFoundError:
+        logger.warning(
+            "Не удалось прикрепить картинку: %s", order.design.image
+        )
+    try:
+        email_message.send()
     except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
         logger.warning("Ошибка при отправке письма клиенту. %s", error)
+        raise SendEmailError()
+
+
+def send_message_to_admin(order_id: UUID) -> None:
+    order = get_order_by_id(order_id)
+    message_content = "\n".join(
+        [
+            "Куплен новый сертификат.\n",
+            f"Имя: {order.customer.first_name}\n"
+            f"Фамилия: {order.customer.last_name}\n"
+            f"Телефон: {order.customer.phone}\n"
+            f"Email: {order.email}\n"
+            f"Сумма: {order.certificate.value}\n"
+            f"Дата и время покупки: {order.created_at}\n",
+        ]
+    )
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not admin_email:
+        logger.warning(
+            "ADMIN_EMAIL не задан, письмо администратору не отправлено"
+        )
+        return
+    email_message = EmailMessage(
+        subject="Куплен новый сертификат.",
+        body=message_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[admin_email],
+    )
+    try:
+        email_message.send()
+        logger.info(
+            "Сообщение админу отправлено, почта админа: %s", admin_email
+        )
+    except (smtplib.SMTPException, socket.error, ssl.SSLError) as error:
+        logger.warning("Ошибка при отправке письма администратору. %s", error)
         raise SendEmailError()
 
 
@@ -161,6 +224,7 @@ def process_yookassa_notification(data: YookassaNotificationScheme) -> None:
         )
         if notification_status == "succeeded":
             send_message_to_client(order_id)
+            send_message_to_admin(order_id)
     except CertificateOrderNotFoundError as error:
         logger.warning("Order not found! id: %s, error: %s", order_id, error)
         raise CertificateOrderNotFoundError()
