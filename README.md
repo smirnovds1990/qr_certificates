@@ -16,7 +16,7 @@ ___
     - 77.75.156.35
     - 77.75.154.128/25
     - 2a02:5180::/32
-- **BASE_URL** — базовый URL приложения вида: https://<domain.ru>/api/v1/
+- **BASE_URL** — базовый URL приложения вида: https://<domain.ru>/admin/orders/certificateorder/
 
 - Настройки SMTP сервера для отправки сертификатов пользователям:
     - **EMAIL_HOST**
@@ -24,11 +24,12 @@ ___
     - **EMAIL_HOST_USER**
     - **EMAIL_HOST_PASSWORD**
     - **DEFAULT_FROM_EMAIL**
+Инструкция по настройке Яндекс SMTP-сервера — https://yandex.ru/support/yandex-360/business/mail/ru/mail-clients/others#smtpsetting
 3. Установите в личном кабинете ЮКассы URL для уведомлений об изменении статусов платежей.
 Личный кабинет --> Интеграция --> HTTP-уведомления --> Изменить настройки
 URL должен быть вида — `https://<domain.ru>/api/v1/changed-payment-status/`
 4. Запуск:
 ```bash
 cd qr_certificates
-docker compose up --build
+docker compose up -d --build
 ```

@@ -146,7 +146,7 @@ def send_message_to_client(order_id: UUID) -> None:
     email_message = EmailMultiAlternatives(
         subject="Вам подарок от HOME",
         body=text_content,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=settings.EMAIL_HOST_USER,
         to=[order.email],
     )
     email_message.attach_alternative(html_content, "text/html")
@@ -186,16 +186,16 @@ def send_message_to_admin(order_id: UUID) -> None:
             f"Дата и время покупки: {order_time.strftime('%d-%m-%Y %H:%M:%S')}",
         ]
     )
-    admin_email = os.getenv("ADMIN_EMAIL")
+    admin_email = settings.EMAIL_HOST_USER
     if not admin_email:
         logger.warning(
-            "ADMIN_EMAIL не задан, письмо администратору не отправлено"
+            "EMAIL_HOST_USER не задан, письмо администратору не отправлено"
         )
         return
     email_message = EmailMessage(
         subject="Куплен новый сертификат.",
         body=message_content,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=settings.EMAIL_HOST_USER,
         to=[admin_email],
     )
     try:
