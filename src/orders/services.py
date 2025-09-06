@@ -133,15 +133,30 @@ def send_message_to_client(order_id: UUID) -> None:
         ]
     )
     html_content = f"""
-    <p>{MESSAGE}</p>
-    <p>
-      <a href="https://certificates-qr-vgrs.vercel.app/certificates/{order_id}">
-          Перейти к сертификату
-      </a>
+    <div style="text-align: center;">
+    <p><b>Здравствуйте!</b><br>
+    Вам подарок — подарочный сертификат <b>Home</b>.</p>
+    </div>
+
+    <div style="text-align: center;">
+    <p>Чтобы получить подарок, кликните по ссылке:
+    <a href="https://certificates-qr-vgrs.vercel.app/certificates/{order_id}">
+        Перейти к сертификату
+    </a>
     </p>
-    <p>Номинал: {order.certificate.value} ₽</p>
+    </div>
+
+    <div style="text-align: center;">
+    <p>Номинал: <b>{order.certificate.value} ₽</b></p>
     <p><img src="cid:design_img" width="600" alt="Сертификат"></p>
-    <p>{MESSAGE_INSTRUCTION}</p>
+    <p><b>Как воспользоваться сертификатом:</b><br>
+        Откройте страницу с сертификатом, кликнув по ссылке вверху.<br>
+        На странице сертификата Вы найдете QR-код.<br>
+        Чтобы расплатиться этим сертификатом, предъявите экран с QR-кодом Продавцу.<br>
+        Если Вы хотите подарить сертификат, перешлите получателю данное письмо или ссылку
+        на сертификат (по почте или через мессенджеры).
+    </p>
+    </div>
     """
     email_message = EmailMultiAlternatives(
         subject="Вам подарок от HOME",

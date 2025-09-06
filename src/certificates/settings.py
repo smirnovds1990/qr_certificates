@@ -134,6 +134,11 @@ LOGGING = {
     },
 }
 
+# Тестовые переменные для mailhog
+# EMAIL_HOST = "mailhog"
+# EMAIL_PORT = 1025
+# EMAIL_USE_TLS = False
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST")
 EMAIL_PORT = int(env("EMAIL_PORT"))
