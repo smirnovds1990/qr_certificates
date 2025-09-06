@@ -23,7 +23,6 @@ ___
     - **EMAIL_PORT**
     - **EMAIL_HOST_USER**
     - **EMAIL_HOST_PASSWORD**
-    - **DEFAULT_FROM_EMAIL**
 Инструкция по настройке Яндекс SMTP-сервера — https://yandex.ru/support/yandex-360/business/mail/ru/mail-clients/others#smtpsetting
 3. Установите в личном кабинете ЮКассы URL для уведомлений об изменении статусов платежей.
 Личный кабинет --> Интеграция --> HTTP-уведомления --> Изменить настройки
